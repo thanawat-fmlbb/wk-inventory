@@ -64,6 +64,3 @@ def create_item_check(main_id: int, item_id: int, quantity: int):
         session.commit()
         session.refresh(item_check)
         return item_check
-
-def rollback():
-    pass

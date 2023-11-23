@@ -3,7 +3,7 @@ import os
 from celery import Celery
 from dotenv import load_dotenv
 from .models import create_item_check, create_items
-
+from .utils import rollback_payment
 
 def create_celery_app():
     load_dotenv()
@@ -26,25 +26,23 @@ app = create_celery_app()
 @app.task
 def check_inventory(main_id: int, item_id: int, quantity: int):
     # when items are checked out, we need to update the stock
-    load_dotenv()
     try:
         create_item_check(main_id=main_id, item_id=item_id, quantity=quantity)
     except Exception as e:
         print(e)
         return False
 
+
 @app.task
 def rollback(main_id: int):
-    load_dotenv()
     try:
-        print("WIP")
+        rollback_payment(main_id=main_id)
     except Exception as e:
         print(e)
         return False
 
 @app.task
 def add_thing(name:str, price:int, stock:int):
-    load_dotenv()
     try:
         create_items(name=name, price=price, stock=stock)
     except Exception as e:
