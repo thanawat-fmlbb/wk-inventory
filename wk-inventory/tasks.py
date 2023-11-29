@@ -27,26 +27,35 @@ def check_inventory(**kwargs):
     main_id = kwargs.get('main_id', None)
     item_id = kwargs.get('item_id', None)
     quantity = kwargs.get('quantity', None)
-
-    # when items are checked out, we need to update the stock
+    item_check_created = False # keeps track if an item was created
+    
     try:
         create_item_check(main_id=main_id, item_id=item_id, quantity=quantity)
+        # if an error was raised, then item_check_created will still be False
+        item_check_created = True
 
-        result_object = {
-            "main_id": main_id,
-            "success": True,
-            "service_name": "inventory",
-            "payload": kwargs,
-        }
-        
-        result_collector.send_task(
-            RESULT_TASK_NAME,
-            kwargs=result_object,
-            task_id=main_id
-        )
+    except ValueError as e:
+        # value error will only be raised if there is not enough stock
+        # so this will happen before the item_check is created
+        # thus no need to return item
+        print(e)
     except Exception as e:
         print(e)
-        return False
+        if item_check_created:
+            return_item(main_id=main_id)
+        
+        
+    result_object = {
+        "main_id": main_id,
+        "success": False,
+        "service_name": "inventory",
+        "payload": kwargs,
+    }
+    result_collector.send_task(
+        RESULT_TASK_NAME,
+        kwargs=result_object,
+        task_id=main_id
+    )
 
 
 @app.task
