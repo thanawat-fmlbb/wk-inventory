@@ -18,20 +18,9 @@ def get_celery_app(channel_number: int):
 app = get_celery_app(2)
 create_db_and_tables()
 
+RESULT_TASK_NAME = "wk-irs.tasks.send_result"
 result_collector = get_celery_app(4)
 
-@app.task(bind=True)
-def test(self, **kwargs):
-    from time import sleep
-    sleep(5)
-    print(kwargs)
-    print(self.request.id)
-    result_collector.send_task(
-            "wk-irs.tasks.send_result",
-            kwargs=kwargs,
-            task_id=self.request.id
-        )
-    return {"msg": "hello, i got the stuff"}
 
 @app.task
 def check_inventory(**kwargs):
@@ -42,9 +31,17 @@ def check_inventory(**kwargs):
     # when items are checked out, we need to update the stock
     try:
         create_item_check(main_id=main_id, item_id=item_id, quantity=quantity)
+
+        result_object = {
+            "main_id": main_id,
+            "success": True,
+            "service_name": "inventory",
+            "payload": kwargs,
+        }
+        
         result_collector.send_task(
-            "wk-irs.tasks.send_result",
-            kwargs=kwargs,
+            RESULT_TASK_NAME,
+            kwargs=result_object,
             task_id=main_id
         )
     except Exception as e:
@@ -57,10 +54,17 @@ def rollback(**kwargs):
     main_id = kwargs.get('main_id', None)
     try:
         return_item(main_id=main_id)
-        return {
+        result_object = {
             "main_id": main_id,
             "success": False, # this is for triggering the rollback on the backend
+            "service_name": "inventory",
+            "payload": kwargs,
         }
+        result_collector.send_task(
+            RESULT_TASK_NAME,
+            kwargs=result_object,
+            task_id=main_id
+        )
     except Exception as e:
         print(e)
         return False
@@ -76,3 +80,22 @@ def create_item(**kwargs):
     except Exception as e:
         print(e)
         return False
+
+
+@app.task(bind=True)
+def test(self, **kwargs):
+    from time import sleep
+    sleep(2)
+    result_object = {
+        "main_id": self.request.id,
+        "success": True,
+        "service_name": "inventory",
+        "payload": kwargs,
+    }
+
+    result_collector.send_task(
+        RESULT_TASK_NAME,
+        kwargs=result_object,
+        task_id=self.request.id
+    )
+    return result_object
