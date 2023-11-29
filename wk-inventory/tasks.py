@@ -28,7 +28,7 @@ def check_inventory(**kwargs):
     item_id = kwargs.get('item_id', None)
     quantity = kwargs.get('quantity', None)
     item_check_created = False # keeps track if an item was created
-    
+    success = True
     try:
         create_item_check(main_id=main_id, item_id=item_id, quantity=quantity)
         # if an error was raised, then item_check_created will still be False
@@ -39,15 +39,17 @@ def check_inventory(**kwargs):
         # so this will happen before the item_check is created
         # thus no need to return item
         print(e)
+        success = False
     except Exception as e:
         print(e)
+        success = False
         if item_check_created:
             return_item(main_id=main_id)
         
-        
+    
     result_object = {
         "main_id": main_id,
-        "success": False,
+        "success": success,
         "service_name": "inventory",
         "payload": kwargs,
     }
