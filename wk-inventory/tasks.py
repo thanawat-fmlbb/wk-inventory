@@ -1,6 +1,7 @@
 import os
 
 from celery import Celery
+from celery.exceptions import SoftTimeLimitExceeded
 from dotenv import load_dotenv
 from .models import create_db_and_tables, create_item_check, return_item, set_item_stock
 
@@ -40,9 +41,17 @@ def check_inventory(**kwargs):
         # thus no need to return item
         print(e)
         success = False
+        kwargs["error"] = "out_of_stock"
+    except SoftTimeLimitExceeded:
+        print(e)
+        success = False
+        kwargs["error"] = "timeout"
+        if item_check_created:
+            return_item(main_id=main_id)
     except Exception as e:
         print(e)
         success = False
+        kwargs["error"] = str(e)
         if item_check_created:
             return_item(main_id=main_id)
         
