@@ -1,7 +1,8 @@
-import os
-from dotenv import load_dotenv
 from typing import Optional, List
 from sqlmodel import Relationship, SQLModel, Field, Session, create_engine, select
+from .engine import get_engine
+
+engine = get_engine()
 
 class Thing(SQLModel, table=True):
     # this is item_id
@@ -21,21 +22,6 @@ class ItemCheck(SQLModel, table=True):
     item: Thing = Relationship(back_populates="item_checks")
 
 
-
-load_dotenv()
-DB_USER = os.environ.get('DB_USER', 'postgres')
-DB_PASSWORD = os.environ.get('DB_PASSWORD', 'password')
-DB_HOSTNAME = os.environ.get('DB_HOSTNAME', 'localhost')
-DB_PORT = os.environ.get('DB_PORT', '5432')
-DB_NAME = os.environ.get('DB_NAME', 'inventory')
-
-db_url = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOSTNAME}:{DB_PORT}/{DB_NAME}"
-engine = create_engine(db_url)
-
-def create_db_and_tables():
-    SQLModel.metadata.create_all(engine)
-
-
 def set_item_stock(item_id: int, stock: int):
     with Session(engine) as session:
         statement = select(Thing).where(Thing.id == item_id)
@@ -50,7 +36,7 @@ def set_item_stock(item_id: int, stock: int):
             session.refresh(item)
 
 
-def create_item_check(main_id: int, item_id: int, quantity: int):
+def create_item_check(main_id: int, item_id: int, quantity: int) -> ItemCheck:
     with Session(engine) as session:
         statement = select(Thing).where(Thing.id == item_id)
         item = session.exec(statement).one()
@@ -70,11 +56,14 @@ def create_item_check(main_id: int, item_id: int, quantity: int):
         session.refresh(item_check)
         return item_check
 
-def return_item(main_id: int):
+def return_item(main_id: int) -> Optional[ItemCheck]:
     with Session(engine) as session:
         # get item_check with main_id
         statement = select(ItemCheck).where(ItemCheck.main_id == main_id).where(ItemCheck.valid == True)
-        item_check = session.exec(statement).one()
+        try:
+            item_check = session.exec(statement).one()
+        except Exception:
+            return None
         
         # invalidate item_check
         item_check.valid = False
