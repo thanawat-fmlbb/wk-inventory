@@ -78,3 +78,26 @@ def return_item(main_id: int) -> Optional[ItemCheck]:
         session.commit()
         session.refresh(item_check)
         return item_check
+
+def setup():
+    with Session(engine) as session:
+        item = session.get(Thing, 1)
+        if item is None:
+            item = Thing(id=1)
+        item.stock = 999999
+        session.add(item)
+        session.commit()
+
+        item = session.get(Thing, 2)
+        if item is None:
+            item = Thing(id=2)
+        item.stock = 0
+        session.add(item)
+        session.commit()
+
+        item = session.get(Thing, 3)
+        if item is None:
+            item = Thing(id=3)
+        item.stock = 10
+        session.add(item)
+        session.commit()

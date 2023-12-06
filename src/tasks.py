@@ -1,5 +1,5 @@
 from celery.exceptions import SoftTimeLimitExceeded
-from .database.models import create_item_check, return_item, set_item_stock
+from .database.models import create_item_check, return_item, setup
 from src import app, result_collector
 
 RESULT_TASK_NAME = "wk-irs.tasks.send_result"
@@ -12,7 +12,7 @@ RESULT_TASK_NAME = "wk-irs.tasks.send_result"
 def check_inventory(**kwargs):
     main_id = kwargs.get('main_id', None)
     item_id = kwargs.get('item_id', None)
-    quantity = kwargs.get('quantity', None)
+    quantity = int(kwargs.get('quantity', None))
     success = True
     try:
         create_item_check(main_id=main_id, item_id=item_id, quantity=quantity)
@@ -71,13 +71,10 @@ def rollback(**kwargs):
     return True
 
 
-@app.task
-def create_item(**kwargs):
-    item_id = kwargs.get('item_id', None)
-    stock = kwargs.get('stock', None)
-
+@app.task(name='wk-inventory.tasks.setup')
+def db_setup():
     try:
-        set_item_stock(item_id=item_id, stock=stock)
+        setup()
     except Exception as e:
         print(e)
         return False
