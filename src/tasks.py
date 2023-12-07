@@ -1,5 +1,5 @@
 from celery.exceptions import SoftTimeLimitExceeded
-from .database.models import create_item_check, return_item, setup
+from src.database.models import create_item_check, return_item, setup
 from src import app, result_collector
 
 RESULT_TASK_NAME = "wk-irs.tasks.send_result"
