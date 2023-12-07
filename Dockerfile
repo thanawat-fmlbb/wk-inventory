@@ -10,6 +10,7 @@ ENV POETRY_VERSION=1.6.1
 RUN pip install poetry==${POETRY_VERSION} && poetry install --no-root --no-directory
 COPY src/ ./src/
 RUN poetry install --no-dev
+RUN poetry run opentelemetry-bootstrap --action=install
 
 # run the application
-CMD ["poetry", "run", "celery", "-A", "src.app", "worker", "-l", "INFO"]
+CMD ["poetry", "run", "opentelemetry-instrument", "celery", "-A", "src.app", "worker", "-l", "INFO"]
